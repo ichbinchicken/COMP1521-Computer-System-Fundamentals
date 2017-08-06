@@ -1,0 +1,25 @@
+void setBitsFromString(Bits b, char *bitseq)
+101 {
+102     Word numBytes = b->nwords;
+103     int i,j,index;
+104     char *ptr;
+105     int bitsNum = strtol(bitseq, &ptr, 2);
+106     for(i = BITS_PER_WORD - 1;i >= 0;i--) {
+107         if ((bitsNum & (1<<i)) != 1)
+108     }
+109 }
+110
+111 /*
+112 for(i = 0;i < numBytes;i++) {
+113         for(j = 0;j < BITS_PER_WORD;j++) {
+114            index = BITS_PER_WORD * i + j;
+115            printf("%c", bitseq[index]);
+116            //if (bitseq[index] == '0') integer += 0 * pow(2, 31-index);
+117            //if (bitseq[index] == '1') integer += 1 * pow(2, 31-index);
+118         }
+119     }
+120     printf("The integer number assigned is %d\n", integer);
+121 */
+
+
+set a = 100100100100100100100100000000000000100000000000000000
