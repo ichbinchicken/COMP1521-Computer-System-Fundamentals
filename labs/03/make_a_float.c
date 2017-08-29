@@ -90,6 +90,7 @@ char *showBits(Word val, char *buf)
             j += 2;
         } else j++;
     }
+    buff[j] = 0;
     return buf;
 }
 
