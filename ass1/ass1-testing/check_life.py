@@ -1,8 +1,7 @@
 import sys
 import subprocess
 import random
-import binascii
-from os import listdir
+import re
 from os.path import isfile
 
 lifec = """#include <stdio.h>
@@ -77,7 +76,7 @@ def generate_test(dim):
     mboard = bytearray()
 
     curly_boye = '{'.encode('utf-8')
-    comma = ','.encode('utf-8')
+    comma = ', '.encode('utf-8')
     byte_byte = '.byte '.encode('utf-8')
     curly_boye_2 = '}'.encode('utf-8')
     eol = '\n'.encode('utf-8')
@@ -133,7 +132,7 @@ def run_tests(iters):
     expected = subprocess.run(["./test_life"], stdout=subprocess.PIPE, input=encoded_in).stdout.decode('utf-8')
     received = subprocess.run(["spim", "-file", "test_life.s"], stdout=subprocess.PIPE, input=encoded_in).stdout.decode('utf-8')
 
-    received = '\n'.join(received.split('\n')[5:])
+    received = re.sub(r'^.*spim\/.*exceptions\.s.', '', received, flags=re.S)
 
     if expected != received:
         with open('out_exp.txt', 'w') as efile:
