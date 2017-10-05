@@ -42,6 +42,7 @@ static PTE  *prePage;       // the page one before the current one
 static PTE  *curr;          // temporary current pag
 static PTE  *first;
 static PTE  *last;
+static PTE  *tmp;
 static int  nPages;         // # entries in page table
 static int  replacePolicy;  // how to do page replacement
 // Forward refs for private functions
@@ -107,6 +108,18 @@ int requestPage(int pno, char mode, int time)
          // - no longer modified
          // - no frame mapping
          // - not accessed, not loaded
+         if (first->modified == 1) saveFrame(first->frame);
+         fno = first->frame;
+         tmp = first;
+         first = tmp->next;
+         first->before = NULL;
+         tmp->next = NULL;
+         tmp->before = NULL;
+         tmp->status = ON_DISK;
+         tmp->modified = 0;
+         tmp->frame = NONE;
+         tmp->loadTime = NONE;
+         tmp->accessTime =NONE;
       }
       printf("Page %d given frame %d\n",pno,fno);
       // load page pno into frame fno
@@ -135,20 +148,22 @@ int requestPage(int pno, char mode, int time)
       break;
    case IN_MEMORY:
       if (replacePolicy == REPL_LRU) {
-          curr = last;
-          curr->next = p;
-          last = p;
-          prePage = p;  //in case
-          if (first == last) {
-              p->before = curr;
-              first = p->next;
-              first->before = NULL;
-          } else {
-              p->next->before = p->before;
-              p->before->next = p->next;
-              p->before = curr;
-          }
-          p->next = NULL;
+        if (p != last) {
+            curr = last;
+            curr->next = p;
+            last = p;
+            prePage = p;  //in case
+            if (first == last) {
+                p->before = curr;
+                first = p->next;
+                first->before = NULL;
+            } else {
+                p->next->before = p->before;
+                p->before->next = p->next;
+                p->before = curr;
+            }
+            p->next = NULL;
+        }
       }
       // add stats collection
       countPageHit();
@@ -164,12 +179,13 @@ int requestPage(int pno, char mode, int time)
       p->modified = 1;
    }
    p->accessTime = time;
-#if 1
+#if 0
    curr = first;
-   while (curr != NULL) {
+   while (curr != last) {
        printf("(%d)->", curr->pno);
        curr = curr->next;
    }
+   printf("(%d)->", curr->pno);
    printf("\n");
 #endif
    return p->frame;
@@ -183,7 +199,16 @@ static int findVictim(int time)
    int victim = 0;
    switch (replacePolicy) {
    case REPL_LRU:
-      // TODO: implement LRU strategy
+#if 0
+      curr = first;
+      while (curr != last) {
+        printf("(%d)->", curr->pno);
+        curr = curr->next;
+      }
+      printf("(%d)->", curr->pno);
+      printf("\n");
+#endif
+      victim = first->pno;
       break;
    case REPL_FIFO:
       // TODO: implement FIFO strategy
