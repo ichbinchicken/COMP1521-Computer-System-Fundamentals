@@ -16,28 +16,33 @@
 
 // PTE = Page Table Entry
 
-typedef struct {
+typedef struct _pte PTE;
+
+struct _pte {
    char status;      // NOT_USED, IN_MEMORY, ON_DISK
-   char modified;    // boolean: changed since loaded
+   char modified;    // boolean: changed since loaded *
    int  frame;       // memory frame holding this page
-   int  accessTime;  // clock tick for last access
-   int  loadTime;    // clock tick for last time loaded
-   int  nPeeks;      // total number times this page read
-   int  nPokes;      // total number times this page modified
-   // TODO: add more fields here, if needed ...
-} PTE;
+   int  accessTime;  // clock tick for last access LRU  *
+   int  loadTime;    // clock tick for last time loaded FIFO
+   int  nPeeks;      // total number times this page read *
+   int  nPokes;      // total number times this page modified *
+   PTE  *next;
+   PTE  *before;
+   // add more fields here, if needed ...
+};
 
 // The virtual address space of the process is managed
 //  by an array of Page Table Entries (PTEs)
 // The Page Table is not directly accessible outside
 //  this file (hence the static declaration)
 
-static PTE *PageTable;      // array of page table entries
+static PTE  *PageTable;     // array of page table entries
+static PTE  *prePage;       // the page one before the current one
+static PTE  *curr;          // temporary current page
 static int  nPages;         // # entries in page table
 static int  replacePolicy;  // how to do page replacement
-static int  fifoList;       // index of first PTE in FIFO list
-static int  fifoLast;       // index of last PTE in FIFO list
-
+static int  first;          // index of first PTE
+static int  last;           // index of last PTE
 // Forward refs for private functions
 
 static int findVictim(int);
@@ -53,8 +58,8 @@ void initPageTable(int policy, int np)
    }
    replacePolicy = policy;
    nPages = np;
-   fifoList = 0;
-   fifoLast = nPages-1;
+   first = 0;
+   last = nPages-1;
    for (int i = 0; i < nPages; i++) {
       PTE *p = &PageTable[i];
       p->status = NOT_USED;
@@ -63,6 +68,8 @@ void initPageTable(int policy, int np)
       p->accessTime = NONE;
       p->loadTime = NONE;
       p->nPeeks = p->nPokes = 0;
+      p->next = NULL;
+      p->before = NULL;
    }
 }
 
@@ -73,7 +80,7 @@ void initPageTable(int policy, int np)
 
 int requestPage(int pno, char mode, int time)
 {
-   if (pno < 0 || pno >= nPages) {
+   if (pno < 0 || pno >= nPages - 1) {
       fprintf(stderr,"Invalid page reference\n");
       exit(EXIT_FAILURE);
    }
@@ -82,7 +89,8 @@ int requestPage(int pno, char mode, int time)
    switch (p->status) {
    case NOT_USED:
    case ON_DISK:
-      // TODO: add stats collection
+      // add stats collection
+      countPageFault();
       fno = findFreeFrame();
       if (fno == NONE) {
          int vno = findVictim(time);
@@ -99,16 +107,41 @@ int requestPage(int pno, char mode, int time)
          // - not accessed, not loaded
       }
       printf("Page %d given frame %d\n",pno,fno);
-      // TODO:
       // load page pno into frame fno
       // update PTE for page
       // - new status
       // - not yet modified
       // - associated with frame fno
       // - just loaded
+      loadFrame(fno, pno, time);
+      p->status = IN_MEMORY;
+      p->frame = fno;
+      p->loadTime = time;
+      if (time == 0)  {
+          first = pno;
+          last = pno;
+          prePage = p;
+          //p->next = NULL initilised in initPageTable function
+          //p->before = NULL initilised in initPageTable function
+      } else {
+          prePage->next = p;
+          p->before = prePage;
+          last = pno;
+          prePage = p;
+          p->next = NULL;  //in case 
+      }
       break;
    case IN_MEMORY:
-      // TODO: add stats collection
+      if (replacePolicy == REPL_LRU) {
+          curr = &PageTable[last];
+          curr->next = p;
+          p->before = curr;
+          p->before->next = p->next;
+          p->next = NULL;
+          last = pno;
+      }
+      // add stats collection
+      countPageHit();
       break;
    default:
       fprintf(stderr,"Invalid page status\n");

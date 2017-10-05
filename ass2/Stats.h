@@ -5,11 +5,11 @@
 #ifndef STATS_H
 
 void initStats();
-void countPeekRequest();
+void countPeekRequest(); 
 void countPokeRequest();
-void countPageLoad();
-void countPageSave();
-void countPageFault();
+void countPageLoad();  // # of loading page
+void countPageSave(); // # of saving page to the disk
+void countPageFault(); 
 void countPageHit();
 void showSummaryStats();
 
