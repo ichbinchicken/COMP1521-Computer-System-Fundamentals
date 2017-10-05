@@ -40,9 +40,9 @@ struct _pte {
 static PTE  *PageTable;     // array of page table entries
 static PTE  *prePage;       // the page one before the current one
 static PTE  *curr;          // temporary current pag
-static PTE  *first;
-static PTE  *last;
-static PTE  *tmp;
+static PTE  *first;         // pointer pointing to the first PTE
+static PTE  *last;          // pointer pointing to the last PTE
+static PTE  *tmp;           // pointer pointing to the victim PTE
 static int  nPages;         // # entries in page table
 static int  replacePolicy;  // how to do page replacement
 // Forward refs for private functions
@@ -100,7 +100,6 @@ int requestPage(int pno, char mode, int time)
 #ifdef DBUG
          printf("Evict page %d\n",vno);
 #endif
-         // TODO:
          // if victim page modified, save its frame
          // collect frame# (fno) for victim page
          // update PTE for victim page
@@ -119,7 +118,7 @@ int requestPage(int pno, char mode, int time)
          tmp->modified = 0;
          tmp->frame = NONE;
          tmp->loadTime = NONE;
-         tmp->accessTime =NONE;
+         tmp->accessTime = NONE;
       }
       printf("Page %d given frame %d\n",pno,fno);
       // load page pno into frame fno
@@ -143,16 +142,17 @@ int requestPage(int pno, char mode, int time)
           p->before = prePage;
           last = p;
           prePage = p;
-          p->next = NULL;  //in case 
+          p->next = NULL;  
       }
       break;
    case IN_MEMORY:
+      // arranging the order of accessing time within page frame
       if (replacePolicy == REPL_LRU) {
         if (p != last) {
             curr = last;
             curr->next = p;
             last = p;
-            prePage = p;  //in case
+            prePage = p;  
             if (first == last) {
                 p->before = curr;
                 first = p->next;
@@ -208,10 +208,8 @@ static int findVictim(int time)
       printf("(%d)->", curr->pno);
       printf("\n");
 #endif
-      victim = first->pno;
-      break;
    case REPL_FIFO:
-      // TODO: implement FIFO strategy
+      victim = first->pno;
       break;
    case REPL_CLOCK:
       return 0;
