@@ -26,6 +26,7 @@ struct _pte {
    int  loadTime;    // clock tick for last time loaded FIFO
    int  nPeeks;      // total number times this page read *
    int  nPokes;      // total number times this page modified *
+   int  pno;
    PTE  *next;
    PTE  *before;
    // add more fields here, if needed ...
@@ -38,11 +39,11 @@ struct _pte {
 
 static PTE  *PageTable;     // array of page table entries
 static PTE  *prePage;       // the page one before the current one
-static PTE  *curr;          // temporary current page
+static PTE  *curr;          // temporary current pag
+static PTE  *first;
+static PTE  *last;
 static int  nPages;         // # entries in page table
 static int  replacePolicy;  // how to do page replacement
-static int  first;          // index of first PTE
-static int  last;           // index of last PTE
 // Forward refs for private functions
 
 static int findVictim(int);
@@ -58,8 +59,8 @@ void initPageTable(int policy, int np)
    }
    replacePolicy = policy;
    nPages = np;
-   first = 0;
-   last = nPages-1;
+   first = NULL;
+   last = NULL;
    for (int i = 0; i < nPages; i++) {
       PTE *p = &PageTable[i];
       p->status = NOT_USED;
@@ -68,6 +69,7 @@ void initPageTable(int policy, int np)
       p->accessTime = NONE;
       p->loadTime = NONE;
       p->nPeeks = p->nPokes = 0;
+      p->pno = i;
       p->next = NULL;
       p->before = NULL;
    }
@@ -80,7 +82,7 @@ void initPageTable(int policy, int np)
 
 int requestPage(int pno, char mode, int time)
 {
-   if (pno < 0 || pno >= nPages - 1) {
+   if (pno < 0 || pno >= nPages) {
       fprintf(stderr,"Invalid page reference\n");
       exit(EXIT_FAILURE);
    }
@@ -118,27 +120,35 @@ int requestPage(int pno, char mode, int time)
       p->frame = fno;
       p->loadTime = time;
       if (time == 0)  {
-          first = pno;
-          last = pno;
+          first = p;
+          last = p;
           prePage = p;
-          //p->next = NULL initilised in initPageTable function
-          //p->before = NULL initilised in initPageTable function
+          //p->next = NULL; initilised in initPageTable function
+          //p->before = NULL; initilised in initPageTable function
       } else {
           prePage->next = p;
           p->before = prePage;
-          last = pno;
+          last = p;
           prePage = p;
           p->next = NULL;  //in case 
       }
       break;
    case IN_MEMORY:
       if (replacePolicy == REPL_LRU) {
-          curr = &PageTable[last];
+          curr = last;
           curr->next = p;
-          p->before = curr;
-          p->before->next = p->next;
+          last = p;
+          prePage = p;  //in case
+          if (first == last) {
+              p->before = curr;
+              first = p->next;
+              first->before = NULL;
+          } else {
+              p->next->before = p->before;
+              p->before->next = p->next;
+              p->before = curr;
+          }
           p->next = NULL;
-          last = pno;
       }
       // add stats collection
       countPageHit();
@@ -154,6 +164,14 @@ int requestPage(int pno, char mode, int time)
       p->modified = 1;
    }
    p->accessTime = time;
+#if 1
+   curr = first;
+   while (curr != NULL) {
+       printf("(%d)->", curr->pno);
+       curr = curr->next;
+   }
+   printf("\n");
+#endif
    return p->frame;
 }
 
