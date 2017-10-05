@@ -114,6 +114,7 @@ int requestPage(int pno, char mode, int time)
          first->before = NULL;
          tmp->next = NULL;
          tmp->before = NULL;
+         tmp->pno = vno; //make compiler happy
          tmp->status = ON_DISK;
          tmp->modified = 0;
          tmp->frame = NONE;
