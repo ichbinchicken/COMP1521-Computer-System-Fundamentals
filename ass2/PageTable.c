@@ -121,7 +121,9 @@ int requestPage(int pno, char mode, int time)
          tmp->loadTime = NONE;
          tmp->accessTime = NONE;
       }
+#ifdef DBUG
       printf("Page %d given frame %d\n",pno,fno);
+#endif
       // load page pno into frame fno
       // update PTE for page
       // - new status
