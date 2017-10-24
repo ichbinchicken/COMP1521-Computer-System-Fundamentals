@@ -1,6 +1,7 @@
 // PageTable.c ... implementation of Page Table operations
 // COMP1521 17s2 Assignment 2
 // Written by John Shepherd, September 2017
+// Modified by Ziming Zheng z5052592
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,10 +27,9 @@ struct _pte {
    int  loadTime;    // clock tick for last time loaded FIFO
    int  nPeeks;      // total number times this page read *
    int  nPokes;      // total number times this page modified *
-   int  pno;
-   PTE  *next;
-   PTE  *before;
-   // add more fields here, if needed ...
+   int  pno;         // page #
+   PTE  *next;       // pointer pointing to the next PTE
+   PTE  *before;     // pointer pointing to the before PTE
 };
 
 // The virtual address space of the process is managed
@@ -103,10 +103,12 @@ int requestPage(int pno, char mode, int time)
          // if victim page modified, save its frame
          // collect frame# (fno) for victim page
          // update PTE for victim page
+         // - get page #
          // - new status
          // - no longer modified
          // - no frame mapping
          // - not accessed, not loaded
+         // - pointers pointing to NULL
          if (first->modified == 1) saveFrame(first->frame);
          fno = first->frame;
          tmp = first;
@@ -114,7 +116,7 @@ int requestPage(int pno, char mode, int time)
          first->before = NULL;
          tmp->next = NULL;
          tmp->before = NULL;
-         tmp->pno = vno; //make compiler happy
+         tmp->pno = vno; // always equal, just make compiler happy, doesn't want to modify jas's code
          tmp->status = ON_DISK;
          tmp->modified = 0;
          tmp->frame = NONE;
@@ -134,13 +136,14 @@ int requestPage(int pno, char mode, int time)
       p->status = IN_MEMORY;
       p->frame = fno;
       p->loadTime = time;
-      if (time == 0)  {
+      // when page is loaded, it will be at the end of list
+      if (time == 0)  { // empty list
           first = p;
           last = p;
           prePage = p;
           //p->next = NULL; initilised in initPageTable function
           //p->before = NULL; initilised in initPageTable function
-      } else {
+      } else { // if not empty
           prePage->next = p;
           p->before = prePage;
           last = p;
@@ -150,16 +153,21 @@ int requestPage(int pno, char mode, int time)
       break;
    case IN_MEMORY:
       // arranging the order of accessing time within page frame
+      // only used in lru method
       if (replacePolicy == REPL_LRU) {
+        // if the last page is accessed, doing nothing
+        // otherwise doing followings
         if (p != last) {
             curr = last;
             curr->next = p;
             last = p;
-            prePage = p;  
+            prePage = p; 
+            // if the first node is accessed, put it to the end 
             if (first == last) {
                 p->before = curr;
                 first = p->next;
                 first->before = NULL;
+            // if not first node accessed
             } else {
                 p->next->before = p->before;
                 p->before->next = p->next;
@@ -182,15 +190,6 @@ int requestPage(int pno, char mode, int time)
       p->modified = 1;
    }
    p->accessTime = time;
-#if 0
-   curr = first;
-   while (curr != last) {
-       printf("(%d)->", curr->pno);
-       curr = curr->next;
-   }
-   printf("(%d)->", curr->pno);
-   printf("\n");
-#endif
    return p->frame;
 }
 
@@ -202,17 +201,8 @@ static int findVictim(int time)
    int victim = 0;
    switch (replacePolicy) {
    case REPL_LRU:
-#if 0
-      curr = first;
-      while (curr != last) {
-        printf("(%d)->", curr->pno);
-        curr = curr->next;
-      }
-      printf("(%d)->", curr->pno);
-      printf("\n");
-#endif
    case REPL_FIFO:
-      victim = first->pno;
+      victim = first->pno; //only return the pno of first node
       break;
    case REPL_CLOCK:
       return 0;

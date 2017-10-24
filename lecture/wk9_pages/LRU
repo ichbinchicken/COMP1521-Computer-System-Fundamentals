@@ -1,0 +1,39 @@
+Page references:
+5, 0, 0, 0, 5, 1, 1, 5, 1, 5, 2, 2, 3, 0, 0, 5, ...
+
+Page frames (main memory):
+[0] page5
+[1] page3
+[2] page0
+[3] page2
+
+Page table:  (frame, accessed)
+[0] frame2,t14
+[1] disk
+[2] frame3,t11
+[3] frame1,t12
+[4] -
+[5] frame0,t15
+
+
+
+
+
+
+
+Page references:
+0, 5, 0, 0, 5, 1, 5, 1, 2, 4, 3, 3, 4, 2, 5, 3, 2, ...
+
+Page frames: (main memory)
+[0] page4
+[1] page3
+[2] page5
+[3] page2
+
+Page table:  (frame, accessed)
+[0] disk
+[1] disk
+[2] frame3,t17
+[3] frame1,t16
+[4] frame0,t13
+[5] frame2,t15
