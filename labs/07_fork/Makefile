@@ -5,6 +5,5 @@ CC=gcc
 CFLAGS=-std=c99 -Wall -Werror -DDBUG
 
 mysh : mysh.c
-
 clean :
 	rm -f mysh *.o core

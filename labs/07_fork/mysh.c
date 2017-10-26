@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <assert.h>
 
-extern char *strdup(char *);
+//extern char *strdup(char *);
 void trim(char *);
 char **tokenise(char *, char *);
 void freeTokens(char **);
@@ -49,10 +49,13 @@ int main(int argc, char *argv[], char *envp[])
       trim(line); // remove leading/trailing space
       if (strcmp(line,"exit") == 0) break;
       if (strcmp(line,"") == 0) { printf("mysh$ "); continue; }
-
-      // TODO: implement the tokenise/fork/execute/cleanup code
-
+      // implement the tokenise/fork/execute/cleanup code
+      char **args;
+      args = tokenise(line," "); 
+      if ((pid = fork()) != 0) wait(&stat);
+      else execute(args, path, envp);
       printf("mysh$ ");
+      freeTokens(args);
    }
    printf("\n");
    return(EXIT_SUCCESS);
@@ -61,7 +64,31 @@ int main(int argc, char *argv[], char *envp[])
 // execute: run a program, given command-line args, path and envp
 void execute(char **args, char **path, char **envp)
 {
-   // TODO: implement the find-the-executable and execve() it code
+    int i;
+    char *name;
+    int flag = 0;
+    //char *name = NULL;
+    if (args[0][0] == '/' || args[0][0] == '.') {
+        if (isExecutable(args[0])) execv(args[0], args);
+    } else {
+        for(i = 0;path[i] != NULL;i++) {
+            name = malloc(strlen(path[i])+strlen(args[0])+2);
+            snprintf(name, strlen(path[i])+strlen(args[0])+2, "%s/%s", path[i], args[0]);
+            // Question: 
+            // - If I used execv in a loop, does it break the loop because it takes over
+            //   the current process?
+            // - As execv takes over the process, I reckon I couldn't free name forever?
+            // - Does heaps monery pointed by "name" remain? (memory leaks)
+            if (isExecutable(name)) { flag = 1; break; }
+            free(name);
+        }
+    }
+    if (!flag) printf("%s: Command not found\n", args[0]);
+    else {
+        printf("Executing %s\n", name);
+        execv(name, args);
+        perror("Exec failed"); 
+    }
 }
 
 // isExecutable: check whether this process can execute a file
