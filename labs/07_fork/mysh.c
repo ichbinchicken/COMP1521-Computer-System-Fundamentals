@@ -1,5 +1,3 @@
-// mysh.c ... a very simple shell
-// Started by John Shepherd, October 2017
 // Completed by <<Ziming Zheng>>, October 2017
 
 #include <stdlib.h>
