@@ -1,3 +1,6 @@
+# know if the first bit of half word is 1
+# it will expand 1s at the front because
+# the half word will be treated as signed number
 .data
 x: .word 0x00010101
 y: .word 0x00008000

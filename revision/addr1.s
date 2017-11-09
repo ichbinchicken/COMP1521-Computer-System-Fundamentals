@@ -37,7 +37,6 @@ end_main:
       move $ra, $s7
       jr   $ra
 
-d print function
 
 print:
       move $s1, $a0

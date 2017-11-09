@@ -22,8 +22,4 @@ mflo    $t1
 sw      $t0, x
 sw      $t1, x+4
 
-lh      $a0, x+4
-li      $v0, 1
-syscall
-
 jr      $ra
